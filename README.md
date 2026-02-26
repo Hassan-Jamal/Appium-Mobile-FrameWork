@@ -709,5 +709,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with ❤️ by <strong>Hassan Jamal</strong>
+  Made with ❤️ by Hassan Jamal<strong>"Pressure Creates Legends, Stay Under it."</strong>
 </p>
