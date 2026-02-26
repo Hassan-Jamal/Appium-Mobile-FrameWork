@@ -3,6 +3,7 @@
 > **Production-ready** mobile test automation framework built with **Appium v2 + WebdriverIO + Mocha + UIAutomator2 + Allure Reports** using the **Page Object Model (POM)** design pattern in **TypeScript**.
 
 ---
+Presentation Link: https://mobile-automation-comple-7xxeldg.gamma.site/
 
 ## 📑 Table of Contents
 
@@ -709,5 +710,7 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  Made with ❤️ by Hassan Jamal<strong>"Pressure Creates Legends, Stay Under it."</strong>
+  Made with ❤️ by Hassan Jamal
+  <br />
+  <strong>"Pressure Creates Legends, Stay Under it."</strong>
 </p>
