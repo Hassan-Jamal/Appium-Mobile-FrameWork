@@ -1,0 +1,126 @@
+# ═══════════════════════════════════════════════
+#  Appium Mobile Framework — .gitignore
+# ═══════════════════════════════════════════════
+
+# ── Dependencies ──────────────────────────────
+node_modules/
+.npm
+.pnp
+.pnp.js
+.yarn/
+package-lock.json
+
+# ── Build & Compiled Output ──────────────────
+dist/
+build/
+.tmp/
+*.js.map
+*.d.ts
+*.d.ts.map
+
+# ── Environment / Secrets ────────────────────
+.env
+.env.local
+.env.*.local
+*.env.local
+
+# ── Appium Artifacts ─────────────────────────
+allure-results/
+allure-report/
+test-results/
+screenshots/
+videos/
+*.mp4
+*.webm
+appium-*.log
+tmp_server/
+tmp_uia2/
+
+# ── App Binaries ─────────────────────────────
+# Keep the apps/ folder, ignore binaries
+apps/*.apk
+apps/*.ipa
+apps/*.aab
+apps/*.app
+apps/*.zip
+
+# ── Appium / UiAutomator2 cached files ───────
+*.tgz
+*.tar.gz
+
+# ── Android SDK tools (should NOT be in repo) ─
+tools/
+
+# ── Test Output / Logs ───────────────────────
+*.log
+*.txt
+!README.md
+!SETUP.md
+!LICENSE
+!.env.example
+signup_test*.log
+test_output.*
+test_result.*
+signup_test_log.*
+
+# ── Screenshots & Screen captures ────────────
+screen_live.png
+*.screenshot.png
+
+# ── IDE / Editor ─────────────────────────────
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+*.code-workspace
+
+# ── macOS ────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── Windows ──────────────────────────────────
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# ── Linux ────────────────────────────────────
+*~
+.fuse_hidden*
+.nfs*
+
+# ── TypeScript cache ─────────────────────────
+*.tsbuildinfo
+tsconfig.tsbuildinfo
+
+# ── Coverage Reports ─────────────────────────
+coverage/
+.nyc_output/
+
+# ── Debug / Profiling ────────────────────────
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.node_repl_history
+*.pid
+*.pid.lock
+
+# ── Misc ─────────────────────────────────────
+.eslintcache
+.cache/
+*.bak
+*.orig
+.history/

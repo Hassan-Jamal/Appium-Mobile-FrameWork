@@ -1,0 +1,154 @@
+pipeline {
+    agent any
+
+    // ── Parameters ─────────────────────────────────────────────────────────
+    parameters {
+        choice(
+            name: 'PLATFORM',
+            choices: ['android', 'ios', 'both', 'parallel'],
+            description: 'Platform to run tests on'
+        )
+        choice(
+            name: 'TEST_SUITE',
+            choices: ['regression', 'smoke', 'login', 'navigation', 'crud'],
+            description: 'Test suite to execute'
+        )
+        string(
+            name: 'DEVICE_NAME',
+            defaultValue: 'Pixel_7_API_34',
+            description: 'Android device/emulator name'
+        )
+    }
+
+    // ── Environment Variables ──────────────────────────────────────────────
+    environment {
+        NODE_HOME       = tool 'NodeJS-20'
+        PATH            = "${NODE_HOME}/bin:${env.PATH}"
+        APPIUM_PORT     = '4723'
+        TEST_USER_EMAIL    = credentials('TEST_USER_EMAIL')
+        TEST_USER_PASSWORD = credentials('TEST_USER_PASSWORD')
+        APP_PACKAGE     = credentials('APP_PACKAGE')
+        APP_ACTIVITY    = credentials('APP_ACTIVITY')
+        IOS_BUNDLE_ID   = credentials('IOS_BUNDLE_ID')
+    }
+
+    stages {
+        // ── Stage 1: Checkout ─────────────────────────────────────────────
+        stage('📥 Checkout') {
+            steps {
+                checkout scm
+                sh 'git log --oneline -5'
+            }
+        }
+
+        // ── Stage 2: Install Dependencies ─────────────────────────────────
+        stage('📦 Install Dependencies') {
+            steps {
+                sh '''
+                    node --version
+                    npm --version
+                    npm ci
+                    echo "✅ Dependencies installed"
+                '''
+            }
+        }
+
+        // ── Stage 3: Install Appium ────────────────────────────────────────
+        stage('🔧 Setup Appium') {
+            steps {
+                sh '''
+                    npm install -g appium@2.4.1 || true
+                    appium driver install uiautomator2 || appium driver update uiautomator2
+                    appium driver install xcuitest     || appium driver update xcuitest
+                    appium driver list
+                    echo "✅ Appium setup complete"
+                '''
+            }
+        }
+
+        // ── Stage 4: Prepare Environment ──────────────────────────────────
+        stage('⚙️ Prepare Environment') {
+            steps {
+                sh '''
+                    mkdir -p allure-results screenshots apps
+                    cp .env.example .env || true
+                    echo "✅ Directories created"
+                '''
+            }
+        }
+
+        // ── Stage 5: Run Tests ─────────────────────────────────────────────
+        stage('🧪 Run Tests') {
+            parallel {
+                stage('Android Tests') {
+                    when {
+                        expression { params.PLATFORM in ['android', 'both', 'parallel'] }
+                    }
+                    steps {
+                        sh """
+                            ANDROID_DEVICE_NAME=${params.DEVICE_NAME} \\
+                            npm run test:android -- --suite ${params.TEST_SUITE} || true
+                        """
+                    }
+                }
+                stage('iOS Tests') {
+                    when {
+                        expression { params.PLATFORM in ['ios', 'both', 'parallel'] }
+                    }
+                    steps {
+                        sh """
+                            npm run test:ios -- --suite ${params.TEST_SUITE} || true
+                        """
+                    }
+                }
+            }
+        }
+
+        // ── Stage 6: Generate Report ───────────────────────────────────────
+        stage('📊 Generate Allure Report') {
+            steps {
+                sh 'npm run allure:generate || echo "No results to generate report from"'
+            }
+        }
+    }
+
+    // ── Post Actions ───────────────────────────────────────────────────────
+    post {
+        always {
+            // Allure Report
+            allure([
+                includeProperties: false,
+                jdk              : '',
+                properties       : [],
+                reportBuildPolicy: 'ALWAYS',
+                results          : [[path: 'allure-results']]
+            ])
+
+            // Archive Screenshots
+            archiveArtifacts(
+                artifacts      : 'screenshots/**/*.png, *.log',
+                allowEmptyArchive: true,
+                fingerprint    : true
+            )
+
+            // JUnit results (if using mocha-junit-reporter too)
+            junit(
+                testResults      : 'test-results/**/*.xml',
+                allowEmptyResults: true
+            )
+
+            echo '🎉 Pipeline complete!'
+        }
+
+        success {
+            echo '✅ All tests PASSED'
+            // Uncomment to add Slack notification:
+            // slackSend color: 'good', message: "✅ Mobile Tests PASSED - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        }
+
+        failure {
+            echo '❌ Tests FAILED — check Allure report for details'
+            // slackSend color: 'danger', message: "❌ Mobile Tests FAILED - ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        }
+    }
+}

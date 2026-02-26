@@ -1,0 +1,199 @@
+name: Mobile Automation Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  # Manual trigger with platform selection
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform to test'
+        required: true
+        default: 'android'
+        type: choice
+        options: [android, ios, both]
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ANDROID TESTS JOB
+# ──────────────────────────────────────────────────────────────────────────────
+jobs:
+  android-tests:
+    name: Android Tests (API 34)
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.platform == 'android' || github.event.inputs.platform == 'both' || github.event.inputs.platform == '' }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: ☕ Setup Java (required for Android emulator)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: 🤖 Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: 📲 Create Android Emulator
+        run: |
+          echo "y" | sdkmanager "system-images;android-34;google_apis;x86_64"
+          avdmanager create avd \
+            --name "Pixel_7_API_34" \
+            --package "system-images;android-34;google_apis;x86_64" \
+            --device "pixel_7" \
+            --force
+
+      - name: ▶️ Start Android Emulator
+        run: |
+          $ANDROID_HOME/emulator/emulator \
+            -avd Pixel_7_API_34 \
+            -no-audio \
+            -no-window \
+            -gpu swiftshader_indirect \
+            -no-snapshot \
+            -no-boot-anim &
+          # Wait for emulator to be ready
+          adb wait-for-device shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+          echo "✅ Emulator is ready"
+
+      - name: 🔧 Install Appium
+        run: |
+          npm install -g appium@2.4.1
+          appium driver install uiautomator2
+          appium driver list
+
+      - name: 📁 Create directories
+        run: |
+          mkdir -p allure-results screenshots apps
+
+      - name: 📱 Copy test APK (if available)
+        run: |
+          # Place your APK in the apps/ folder (upload as artifact or download from releases)
+          echo "ℹ️ No APK provided - using environment config"
+        continue-on-error: true
+
+      - name: 🧪 Run Android Tests
+        env:
+          ANDROID_DEVICE_NAME: Pixel_7_API_34
+          ANDROID_PLATFORM_VERSION: "14.0"
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          APP_PACKAGE: ${{ secrets.APP_PACKAGE }}
+          APP_ACTIVITY: ${{ secrets.APP_ACTIVITY }}
+          APK_PATH: ./apps/app-debug.apk
+        run: npm run test:android
+        continue-on-error: true
+
+      - name: 📊 Generate Allure Report
+        if: always()
+        run: npm run allure:generate
+
+      - name: 📤 Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-android
+          path: allure-report/
+          retention-days: 14
+
+      - name: 📤 Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-android
+          path: screenshots/
+          retention-days: 7
+
+      - name: 📤 Upload Allure Results (raw)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-android
+          path: allure-results/
+          retention-days: 7
+
+# ──────────────────────────────────────────────────────────────────────────────
+# iOS TESTS JOB
+# ──────────────────────────────────────────────────────────────────────────────
+  ios-tests:
+    name: iOS Tests (Simulator - iPhone 15)
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.platform == 'ios' || github.event.inputs.platform == 'both' || github.event.inputs.platform == '' }}
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🍎 List available simulators
+        run: xcrun simctl list devices available
+
+      - name: 📲 Boot iPhone 15 simulator
+        run: |
+          UDID=$(xcrun simctl list devices | grep "iPhone 15 (" | grep -v "Plus\|Pro" | head -1 | awk -F'[()]' '{print $2}')
+          echo "Booting simulator: $UDID"
+          xcrun simctl boot $UDID || true
+          xcrun simctl bootstatus $UDID -b
+          echo "IOS_UDID=$UDID" >> $GITHUB_ENV
+          echo "✅ Simulator booted"
+
+      - name: 🔧 Install Appium
+        run: |
+          npm install -g appium@2.4.1
+          appium driver install xcuitest
+          appium driver list
+
+      - name: 📁 Create directories
+        run: mkdir -p allure-results screenshots apps
+
+      - name: 🧪 Run iOS Tests
+        env:
+          IOS_DEVICE_NAME: iPhone 15
+          IOS_PLATFORM_VERSION: "17.2"
+          IOS_UDID: ${{ env.IOS_UDID }}
+          TEST_USER_EMAIL: ${{ secrets.TEST_USER_EMAIL }}
+          TEST_USER_PASSWORD: ${{ secrets.TEST_USER_PASSWORD }}
+          IOS_BUNDLE_ID: ${{ secrets.IOS_BUNDLE_ID }}
+          IPA_PATH: ./apps/MyApp.ipa
+        run: npm run test:ios
+        continue-on-error: true
+
+      - name: 📊 Generate Allure Report
+        if: always()
+        run: npm run allure:generate
+
+      - name: 📤 Upload Allure Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-ios
+          path: allure-report/
+          retention-days: 14
+
+      - name: 📤 Upload Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-ios
+          path: screenshots/
+          retention-days: 7

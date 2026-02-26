@@ -1,0 +1,42 @@
+[
+    {
+        "id": "user_001",
+        "firstName": "Alice",
+        "lastName": "Johnson",
+        "email": "alice.johnson@example.com",
+        "password": "Alice@1234",
+        "username": "alice_j",
+        "phone": "+1-555-100-2000",
+        "role": "admin"
+    },
+    {
+        "id": "user_002",
+        "firstName": "Bob",
+        "lastName": "Smith",
+        "email": "bob.smith@example.com",
+        "password": "Bob@5678",
+        "username": "bob_smith",
+        "phone": "+1-555-100-3000",
+        "role": "user"
+    },
+    {
+        "id": "user_003",
+        "firstName": "Carol",
+        "lastName": "Williams",
+        "email": "carol.w@example.com",
+        "password": "Carol@9012",
+        "username": "carol_w",
+        "phone": "+1-555-100-4000",
+        "role": "user"
+    },
+    {
+        "id": "invalid_user",
+        "firstName": "Invalid",
+        "lastName": "User",
+        "email": "notarealuser@fake.com",
+        "password": "wrongpass",
+        "username": "invalid_user",
+        "phone": "",
+        "role": "none"
+    }
+]
